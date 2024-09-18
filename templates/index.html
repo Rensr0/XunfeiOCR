@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR识别系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        .container {
+            width: 80%;
+            max-width: 600px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+        .upload-area label {
+            display: inline-block;
+            padding: 10px 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #e0e0e0;
+            transition: background 0.3s;
+        }
+        .upload-area label:hover {
+            background: #ccc;
+        }
+        .upload-area input[type="file"] {
+            display: none;
+        }
+        .upload-preview {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .upload-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .results textarea {
+            width: 100%;
+            height: 200px;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+            resize: none;
+            background-color: #fafafa;
+        }
+        .api-doc {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #555;
+        }
+        .api-doc code {
+            background-color: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OCR识别系统</h1>
+        <form id="upload-form" enctype="multipart/form-data">
+            <div class="upload-area">
+                <label for="file-input">上传图片</label>
+                <input type="file" id="file-input" name="file">
+                <div class="upload-preview" id="upload-preview">
+                    <img id="preview-img" src="" alt="预览图片">
+                </div>
+            </div>
+            <div class="upload-area">
+                <input type="text" id="url-input" placeholder="或者输入图片链接">
+            </div>
+            <button type="submit">开始识别</button>
+        </form>
+        <div class="results" id="results">
+            <textarea id="result-text" readonly></textarea>
+        </div>
+        <div class="api-doc">
+            <h3>API接口文档</h3>
+            <p>通过GET方法调用OCR接口：</p>
+            <p><code>http://api.rensr.site/ocr?url=图片链接</code></p>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const previewImg = document.getElementById('preview-img');
+        const uploadPreview = document.getElementById('upload-preview');
+
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    uploadPreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                uploadPreview.style.display = 'none';
+            }
+        });
+
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    let fileInput = document.getElementById('file-input');
+    let urlInput = document.getElementById('url-input').value;
+
+    // 如果有文件，则使用 POST 上传文件
+    if (fileInput.files.length > 0) {
+        let formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        fetch('/ocr', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('result-text').textContent = data.captcha_text || data.error;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('result-text').textContent = '识别过程中发生错误';
+        });
+
+    // 如果输入了 URL，则使用 GET 请求
+    } else if (urlInput) {
+        fetch(`/ocr?url=${encodeURIComponent(urlInput)}`, {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('result-text').textContent = data.captcha_text || data.error;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('result-text').textContent = '识别过程中发生错误';
+        });
+
+    } else {
+        alert('请选择文件或输入图片链接');
+    }
+});
+
+    </script>
+</body>
+</html>
